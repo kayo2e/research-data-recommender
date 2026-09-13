@@ -35,6 +35,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 # 베이스라인 자체는 안 건드리고, 임계값/규정 그라운딩만 별도 모듈로 분리 — submit.zip에
 # thresholds.py를 script.py와 나란히 zip 루트에 넣으면 그대로 동작한다(법령패키지 CSV는
 # PPS_DATA_DIR 아래 이미 배포돼 있어 별도로 담을 필요 없음).
+import fewshot
 import thresholds
 
 DATA_DIR = os.environ.get("PPS_DATA_DIR", "./data")
@@ -231,7 +232,9 @@ def build_system_prompt(tbl: Dict[str, Dict[str, Any]]) -> str:
         tag = "  [근거 없음 — null]" if it["부재탐지"] else ""
         note = f" ({it['비고']})" if it.get("비고") else ""
         lines.append(f"- {v}: {it['항목명']}{note}{tag}")
-    return SYSTEM_HEAD + "\n" + "\n".join(lines) + "\n" + SYSTEM_TAIL
+    fewshot_block = fewshot.build_fewshot_block(tbl)
+    examples_section = f"\n\n판단이 특히 헷갈리는 항목의 실제 사례:{fewshot_block}" if fewshot_block else ""
+    return SYSTEM_HEAD + "\n" + "\n".join(lines) + examples_section + "\n" + SYSTEM_TAIL
 
 
 def build_user_prompt(rec: Dict[str, Any], max_chars: int) -> str:
